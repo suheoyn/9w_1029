@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>반야심경(般若心經) 타자 연습</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+
+<!--
+  필요한 파일 (이 html과 같은 폴더에 두세요)
+  1.png 2.png 3.png : 메인 캐릭터 (귀 막은 / 눈 가린 / 입 가린)
+  4.png             : 목탁 (타자 창으로 이동)
+  5.png             : 헤드폰 부처 (선택한 색으로 칠해짐)
+  6.png             : 완료 화면 배경
+  7.png             : 완료 화면 LP판
+  moktak.mp3        : 자모 하나를 칠 때마다 울리는 목탁 소리
+  GapyeongHanseokbong-Light.ttf / -Regular.ttf / -Bold.ttf : 가평한석봉 가는붓L / 중간붓R / 큰붓B
+                      (폰트 파일 이름을 이렇게 바꿔서 같은 폴더에 두거나, 컴퓨터에 설치돼 있으면 자동 사용)
+  banya.mp3         : 다 쳤을 때(완료 화면) 나오는 음원
+-->
+
+<style>
+/* ───────── 폰트: 가평한석봉 (가평군 서체) ───────── */
+@font-face{font-family:'Gapyeong Hanseokbong';font-weight:300;font-display:swap;
+  src:local('가평한석봉 가는붓L'),local('Gapyeong Hanseokbong Light'),local('GapyeongHanseokbong-Light'),url('GapyeongHanseokbong-Light.ttf') format('truetype')}
+@font-face{font-family:'Gapyeong Hanseokbong';font-weight:400;font-display:swap;
+  src:local('가평한석봉 중간붓R'),local('Gapyeong Hanseokbong Regular'),local('GapyeongHanseokbong-Regular'),url('GapyeongHanseokbong-Regular.ttf') format('truetype')}
+@font-face{font-family:'Gapyeong Hanseokbong';font-weight:700;font-display:swap;
+  src:local('가평한석봉 큰붓B'),local('Gapyeong Hanseokbong Bold'),local('GapyeongHanseokbong-Bold'),url('GapyeongHanseokbong-Bold.ttf') format('truetype')}
+
+/* ───────── 기본 ───────── */
+:root{
+  --c:#6aa385;                 /* 사용자가 고른 색 (JS가 변경) */
+  --gray:#b5b5b5;              /* 아직 안 친 글자 */
+  --sans:'Gapyeong Hanseokbong','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --serif:'Gapyeong Hanseokbong','Noto Serif KR','Nanum Myeongjo','Apple SD Gothic Neo',serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:#fff;color:#111;font-family:var(--sans);overflow-x:hidden;transition:background .35s}
+body.dim{background:#d3d3d3}
+.screen{display:none}
+.screen.on{display:block}
+
+/* ───────── 1. 메인 ───────── */
+#home{position:relative;height:100vh;overflow:hidden}
+.stage{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5vh}
+.stage h1{font-size:clamp(13px,1.1vw,17px);font-weight:700;letter-spacing:.02em}
+.chars{display:flex;gap:clamp(24px,5vw,80px)}
+.chars img{display:block;width:clamp(64px,7vw,130px);opacity:.55;cursor:pointer;transition:opacity .3s,transform .3s}
+.chars img.act{opacity:1;transform:scale(1.04)}
+#ear{display:block;width:clamp(60px,6vw,110px);margin-top:2vh;opacity:.8;cursor:pointer;transition:opacity .3s}
+#ear:hover{opacity:1}
+
+#bubble{position:absolute;z-index:5;display:none;padding:16px 28px;border-radius:12px;background:#fff;box-shadow:0 2px 10px #0001;font-weight:700;font-size:clamp(12px,1vw,16px);white-space:nowrap}
+#bubble::after{content:"";position:absolute;left:var(--arrow,50%);width:14px;height:14px;background:#fff;transform:translateX(-50%) rotate(45deg)}
+#bubble.below::after{top:-7px}
+#bubble.above::after{bottom:-7px}
+
+/* 물방울 파동 + 디졸브 */
+#ripple{position:fixed;inset:0;width:100%;height:100%;z-index:70;pointer-events:none}
+#typing.fade{position:fixed;inset:0;z-index:60;overflow:hidden;background:#fff;opacity:0;transition:opacity 1.3s ease}
+#typing.fade.go{opacity:1}
+
+/* ───────── 2. 타자 창 ───────── */
+#typing{position:relative;min-height:100vh}
+
+#bar{position:fixed;top:0;left:0;right:0;z-index:20;height:76px;display:flex;align-items:center;gap:clamp(14px,2vw,32px);padding:calc(22px + env(safe-area-inset-top,0px)) 28px 14px;background:linear-gradient(#fff 70%,#fff0)}
+#bar input[type=range]{-webkit-appearance:none;appearance:none;width:clamp(110px,18vw,300px);height:18px;background:transparent;cursor:pointer}
+#bar input::-webkit-slider-runnable-track{height:2px;background:#9a9a9a}
+#bar input::-moz-range-track{height:2px;background:#9a9a9a}
+#bar input::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;border:0;border-radius:50%;background:var(--c)}
+#bar input::-moz-range-thumb{width:12px;height:12px;border:0;border-radius:50%;background:var(--c)}
+#apply{padding:4px 14px;border:0;border-radius:99px;background:var(--c);color:#fff;font:700 12px var(--sans);cursor:pointer}
+
+#intro{position:fixed;inset:0;z-index:10;display:none;background:rgba(0,0,0,.16);cursor:pointer}   /* 처음 안내 */
+#intro p{position:absolute;top:96px;left:20px;text-align:right;font:700 clamp(9px,1.1vw,17px) var(--serif);color:#000}
+#typing.intro #bar{top:10px;left:20px;right:auto;height:auto;padding:16px 32px;background:#fff;border:2px dashed #111;border-radius:22px;pointer-events:none}
+#pill{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:50%;z-index:25;display:none;transform:translateX(-50%);padding:3px 12px;border-radius:99px;background:#111;color:#fff;font:700 11px var(--sans)}
+#stats{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:34px;z-index:20;display:none;gap:clamp(18px,2.4vw,40px);color:var(--c);font:700 clamp(22px,2.6vw,40px) var(--sans);font-variant-numeric:tabular-nums}
+
+#wave{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}   /* 불상 뒤 물방울 파동 */
+#bud{position:fixed;right:0;bottom:0;z-index:1;height:min(88vh,calc(42vw * 1158 / 1076));width:auto;pointer-events:none;filter:url(#tint)}   /* 5.png를 고른 색으로 */
+
+#text{position:relative;z-index:2;width:58vw;padding:96px 0 120px 4vw;font-family:var(--serif);line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
+#text .line{margin-bottom:.5em}
+#text .line.title{margin-bottom:.9em}
+#text .orig{color:#000;font-weight:700}
+#text .orig span.cur{border-bottom:3px solid var(--c)}                       /* 지금 치는 글자 표시 */
+#text .echo{display:block;width:fit-content;max-width:100%;min-width:2.2em;min-height:1.7em;margin:.15em 0 0 -1em;padding:.05em 1em;
+  border:1px solid #d6d6d6;border-radius:1em;font-weight:400;white-space:pre-wrap;visibility:hidden}   /* 따라 쓰기 칸 */
+#text .echo.has{visibility:visible}
+#text .echo span.bad{color:#e02020;font-weight:700}
+#input{position:fixed;left:-9999px;top:0;width:10px;height:10px;opacity:0}
+
+/* ───────── 3. 완료 화면 ───────── */
+#end{position:fixed;inset:0;z-index:50;background:#2a6fb3 url(6.png) center/cover;color:#fff}
+#lp{--S:min(84vh,66vw);position:absolute;left:0;top:50%;width:var(--S);height:var(--S);margin-top:calc(var(--S) / -2);isolation:isolate;animation:spin 14s linear infinite}
+#lp img{display:block;width:100%;height:100%}
+#lp i{position:absolute;left:29.6%;top:29.6%;width:40.8%;height:40.8%;border-radius:50%;background:var(--c);mix-blend-mode:lighten}   /* 7.png 안쪽 흰 원의 검은 부분만 색칠 */
+@keyframes spin{to{transform:rotate(360deg)}}
+#result{position:absolute;left:52vw;top:50%;max-width:38vw;transform:translateY(-50%)}
+#result h2{font:700 clamp(28px,3.6vw,56px) var(--sans)}
+#result p{margin:14px 0 22px;font-size:clamp(11px,.95vw,15px);line-height:1.7}
+#result button{padding:6px 16px;border:0;border-radius:99px;background:#fff;color:#111;font:700 13px var(--sans);cursor:pointer}
+
+@media (max-width:700px){
+  #lp{--S:90vw;left:5vw;top:4vh;margin-top:0;animation:none}
+  #result{left:6vw;top:auto;bottom:6vh;max-width:88vw;transform:none}
+}
+</style>
+</head>
+
+<body>
+<!-- 5.png / 7.png 색칠용 필터 (JS가 색을 바꿈) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="tint" color-interpolation-filters="sRGB">
+    <feColorMatrix id="tintMatrix" type="matrix" values="0 0 0 0 0.42  0 0 0 0 0.64  0 0 0 0 0.52  -0.2126 -0.7152 -0.0722 1 0"/>
+  </filter>
+</svg>
+
+<!-- 1. 메인 -->
+<section id="home" class="screen on">
+  <div class="stage">
+    <h1>반야심경(般若心經)</h1>
+    <div class="chars">
+      <img src="1.png" data-i="0" alt="">
+      <img src="2.png" data-i="1" alt="">
+      <img src="3.png" data-i="2" alt="">
+    </div>
+    <img id="ear" src="4.png" alt="타자 시작">
+  </div>
+  <div id="bubble"></div>
+</section>
+
+<!-- 2. 타자 창 -->
+<section id="typing" class="screen">
+  <div id="bar">
+    <input id="sizeSlider"  type="range" min="0" max="100" value="0" aria-label="글자 크기">
+    <input id="colorSlider" type="range" min="0" max="15" step="1" value="5" aria-label="색상">
+    <button id="apply">적용</button>
+  </div>
+  <div id="intro"><p>먼저 뜻하는 바를 정하신 후, [적용]을 누르십시오.</p></div>
+  <div id="pill">마음을 써서 시작하세요!</div>
+  <div id="stats"><span id="cpm">현재 타수: 0</span><span id="clock">00:00:00</span></div>
+  <canvas id="wave"></canvas>
+  <img id="bud" src="5.png" alt="">
+  <div id="text"></div>
+  <textarea id="input" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+</section>
+
+<!-- 3. 완료 화면 -->
+<section id="end" class="screen">
+  <div id="lp"><img src="7.png" alt=""><i></i></div>
+  <div id="result">
+    <h2 id="finalTime">0:00:00</h2>
+    <p>빠르고 느림은 허공의 구름과 같으니, 마음에 두지 마옵소서.<br>한 자 한 자 끝까지 이르렀으니, 그것이 곧 수행이옵니다.</p>
+    <button id="again">다시하기</button>
+  </div>
+</section>
+
+<script>
+/* ═════════════ 설정 (여기만 바꿔도 됩니다) ═════════════ */
+const TAP_SOUND = 'moktak.mp3';       // 자모 하나 칠 때마다 울리는 소리
+const END_SOUND = 'banya.mp3';        // 다 쳤을 때 나오는 음원
+const BUBBLE_MS    = 2000;            // 캐릭터 말풍선 유지 시간
+
+// 색상 팔레트: 왼쪽 → 오른쪽이 슬라이더 min → max (마지막은 블랙)
+const PALETTE = ['#e57373','#f0a35e','#f2c94c','#c5d86d','#8fcf8f','#6aa385','#4fb8a8','#5bc0de',
+                 '#5b8def','#4a4ae0','#7c4dff','#b05fd8','#e06fb0','#8d6e63','#9e9e9e','#000000'];
+
+const SUTRA = [
+  '마하반야바라밀다심경','관자재보살','행심반야바라밀다시 조견오온개공 도일체고액','사리자',
+  '색불이공 공불이색 색즉시공 공즉시색 수상행식 역부여시','사리자','시제법공상 불생불멸 불구부정 부증불감',
+  '시고 공중무색 무수상행식','무안이비설신의 무색성향미촉법 무안계 내지 무의식계',
+  '무무명 역무무명진 내지 무노사 역무노사진','무고집멸도 무지 역무득 이무소득고','보리살타 의반야바라밀다고',
+  '심무가애 무가애고 무유공포 원리전도몽상 구경열반','삼세제불 의반야바라밀다고','득아뇩다라삼먁삼보리',
+  '고지반야바라밀다 시대신주 시대명주 시무상주 시무등등주 능제일체고 진실불허',
+  '고설반야바라밀다주 즉설주왈','아제아제 바라아제 바라승아제 모지 사바하'
+];
+
+const MESSAGES = [
+  '반야심경을 마음에 새기며 한 자 한 자 두드려 보소서.',
+  '글씨의 크기도, 마음 머무를 빛깔도 그대가 고르시옵소서.',
+  '자판 위에서 반야를 두드리니, 마음이 절로 고요해지리라.'
+];
+
+
+/* ═════════════ 공통 ═════════════ */
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const pad = n => String(n).padStart(2, '0');
+
+function showScreen(id){ $$('.screen').forEach(el => el.classList.toggle('on', el.id === id)); }
+
+function setColor(hex){                       // CSS 변수 + 5.png 필터 색 동시 변경
+  document.documentElement.style.setProperty('--c', hex);
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  $('#tintMatrix').setAttribute('values',
+    `0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  -0.2126 -0.7152 -0.0722 1 0`);
+}
+
+/* ═════════════ 1. 메인: 캐릭터 · 말풍선 ═════════════ */
+const chars  = $$('.chars img');
+const bubble = $('#bubble');
+let bubbleTimer;
+
+function resetHome(){
+  clearTimeout(bubbleTimer);
+  document.body.classList.remove('dim');
+  chars.forEach(c => c.classList.remove('act'));
+  bubble.style.display = 'none';
+}
+
+chars.forEach(img => img.addEventListener('click', e => {
+  e.stopPropagation();
+  if (img.classList.contains('act')) return resetHome();     // 같은 캐릭터를 다시 누르면 복귀
+
+  const i = +img.dataset.i, above = i === 1;                 // 가운데 캐릭터만 말풍선이 위
+  document.body.classList.add('dim');
+  chars.forEach(c => c.classList.toggle('act', c === img));
+
+  bubble.textContent = MESSAGES[i];
+  bubble.className = above ? 'above' : 'below';
+  bubble.style.display = 'block';
+  const r = img.getBoundingClientRect(), cx = r.left + r.width / 2;
+  const w = bubble.offsetWidth, h = bubble.offsetHeight;
+  const left = Math.max(12, Math.min(innerWidth - w - 12, cx - w / 2));
+  bubble.style.left = left + 'px';
+  bubble.style.top  = (above ? r.top - h - 16 : r.bottom + 16) + 'px';
+  bubble.style.setProperty('--arrow', (cx - left) + 'px');
+
+  clearTimeout(bubbleTimer);
+  bubbleTimer = setTimeout(resetHome, BUBBLE_MS);
+}));
+$('#home').addEventListener('click', resetHome);
+
+/* ═════════════ 메인 → 타자 창: 물방울 파동 + 디졸브 ═════════════ */
+let leaving = false;
+$('#ear').addEventListener('click', e => {
+  e.stopPropagation();
+  if (leaving) return;
+  leaving = true;
+  resetHome();
+  playRipple(e.currentTarget);
+});
+
+function playRipple(el){
+  const box = el.getBoundingClientRect();
+  const cx = box.left + box.width / 2, cy = box.top + box.height / 2;
+  const dpr = devicePixelRatio || 1;
+
+  const cv = document.createElement('canvas');
+  cv.id = 'ripple'; cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+  document.body.appendChild(cv);
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+
+  const maxR = Math.hypot(Math.max(cx, innerWidth - cx), Math.max(cy, innerHeight - cy)) * 1.05;
+  const page = $('#typing');
+  const t0 = performance.now();
+  let dissolving = false, swapped = false;
+
+  (function frame(now){
+    const t = now - t0;
+    g.clearRect(0, 0, innerWidth, innerHeight);
+
+    for (let k = 0; k < 4; k++){                         // 340ms 간격으로 4겹의 파동
+      const tt = t - k * 340; if (tt <= 0) continue;
+      const p = tt / 2200;    if (p >= 1) continue;
+      const R = (1 - (1 - p) ** 2) * maxR, a = (1 - p) ** 1.4;
+
+      for (let i = 0; i < 3; i++){                       // 한 파동 = 동심원 3줄 + 하이라이트
+        const r = R - i * 13; if (r <= 0) continue;
+        g.beginPath(); g.arc(cx, cy, r, 0, 7);
+        g.lineWidth = 3.2 - i; g.strokeStyle = `rgba(70,85,110,${a * (.5 - i * .12)})`; g.stroke();
+        g.beginPath(); g.arc(cx, cy, r + 2.5, 0, 7);
+        g.lineWidth = 1.4; g.strokeStyle = `rgba(255,255,255,${a * .9})`; g.stroke();
+      }
+      const grad = g.createRadialGradient(cx, cy, Math.max(0, R - 36), cx, cy, R + 4);   // 물결 은은한 음영
+      grad.addColorStop(0, 'rgba(120,140,170,0)');
+      grad.addColorStop(.85, `rgba(120,140,170,${a * .12})`);
+      grad.addColorStop(1, 'rgba(120,140,170,0)');
+      g.fillStyle = grad; g.beginPath(); g.arc(cx, cy, R + 4, 0, 7); g.fill();
+    }
+
+    if (!dissolving && t > 600){                         // 0.6초: 타자 페이지가 위로 서서히 겹침
+      dissolving = true;
+      page.classList.add('fade', 'on'); layout(); paint(); showIntro();
+      void page.offsetWidth; page.classList.add('go');
+    }
+    if (dissolving && !swapped && t > 2000){             // 2.0초: 정식 전환
+      swapped = true;
+      page.classList.remove('fade', 'go');
+      showScreen('typing'); layout(); scrollTo(0, 0);
+    }
+    if (t < 3000) requestAnimationFrame(frame); else { cv.remove(); leaving = false; }
+  })(t0);
+}
+
+/* ═════════════ 2. 타자 창: 글자 · 슬라이더 ═════════════ */
+const textBox = $('#text'), sizeSlider = $('#sizeSlider'), colorSlider = $('#colorSlider'), input = $('#input');
+const targets = [];                                       // 타자 대상 글자(공백 제외): { ch, span(원문), echo(따라 쓰기) }
+
+SUTRA.forEach((line, k) => {
+  const row = document.createElement('div'), orig = document.createElement('div'), echo = document.createElement('div');
+  row.className = 'line' + (k === 0 ? ' title' : ''); orig.className = 'orig'; echo.className = 'echo';
+  [...line].forEach(ch => {
+    if (ch === ' '){ orig.append(' '); echo.append(' '); return; }
+    const s = document.createElement('span'), e = document.createElement('span');
+    s.textContent = ch; orig.appendChild(s); echo.appendChild(e);
+    targets.push({ ch, span: s, echo: e, box: echo });
+  });
+  row.append(orig, echo); textBox.appendChild(row);
+});
+const TOTAL = targets.length;
+
+let fontMin = 12, fontMax = 40;
+function layout(){
+  // min: 전체 글이 화면 높이에 꽉 찰 때
+  textBox.style.paddingBottom = '';
+  let lo = 6, hi = 60;
+  for (let k = 0; k < 14; k++){
+    const mid = (lo + hi) / 2; textBox.style.fontSize = mid + 'px';
+    textBox.scrollHeight <= innerHeight ? lo = mid : hi = mid;
+  }
+  fontMin = lo;
+  if (live) textBox.style.paddingBottom = '45vh';
+
+  // max: 가장 긴 줄이 5.png에 걸치지 않고 한 줄에 들어가는 한계
+  const colW = innerWidth * .58 - innerWidth * .04 - 8;
+  const probe = document.createElement('span');
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:100px ' + getComputedStyle(textBox).fontFamily;
+  document.body.appendChild(probe);
+  let widest = 0; SUTRA.forEach(l => { probe.textContent = l; widest = Math.max(widest, probe.offsetWidth); });
+  probe.remove();
+  fontMax = Math.max(fontMin + 6, Math.min(colW / widest * 100, innerWidth * .05));
+  applySize();
+}
+const applySize  = () => { textBox.style.fontSize = (fontMin + (fontMax - fontMin) * sizeSlider.value / 100) + 'px'; };
+const applyColor = () => setColor(PALETTE[colorSlider.value]);
+
+sizeSlider.oninput  = applySize;
+colorSlider.oninput = applyColor;
+addEventListener('resize', () => { if ($('#typing').classList.contains('on')) layout(); });
+applyColor();
+document.fonts && document.fonts.ready.then(() => { if ($('#typing').classList.contains('on')) layout(); });   // 폰트 로딩 뒤 크기 재계산
+
+/* ═════════════ 한글 자모 분해 (ㅂ → 벼 → 변 단계 판정용) ═════════════ */
+const CHO  = [...'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'];
+const JUNG = [...'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ'];
+const JONG = ['', ...'ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ'];
+const SPLIT = { ㅘ:'ㅗㅏ', ㅙ:'ㅗㅐ', ㅚ:'ㅗㅣ', ㅝ:'ㅜㅓ', ㅞ:'ㅜㅔ', ㅟ:'ㅜㅣ', ㅢ:'ㅡㅣ',     // 겹모음 · 겹받침은 키 2번
+                ㄳ:'ㄱㅅ', ㄵ:'ㄴㅈ', ㄶ:'ㄴㅎ', ㄺ:'ㄹㄱ', ㄻ:'ㄹㅁ', ㄼ:'ㄹㅂ', ㄽ:'ㄹㅅ', ㄾ:'ㄹㅌ', ㄿ:'ㄹㅍ', ㅀ:'ㄹㅎ', ㅄ:'ㅂㅅ' };
+
+function jamo(ch){                                       // '변' → ['ㅂ','ㅕ','ㄴ']
+  const c = ch.charCodeAt(0);
+  if (c >= 0xAC00 && c <= 0xD7A3){
+    const n = c - 0xAC00;
+    return [CHO[Math.floor(n / 588)], JUNG[Math.floor(n % 588 / 28)], JONG[n % 28]].map(j => SPLIT[j] || j).join('').split('');
+  }
+  return SPLIT[ch] ? SPLIT[ch].split('') : [ch];
+}
+const rgbOf = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+const lighten = (hex, f) => `rgb(${rgbOf(hex).map(v => Math.round(255 - (255 - v) * f)).join(',')})`;   // f=0 흰색 ~ 1 원색
+
+/* ═════════════ 소리: 목탁(자모마다) + 완료 음원 ═════════════ */
+let tapPool = [], tapIdx = 0, endSound = null;
+
+function initSounds(){                                   // '적용' 클릭 때 미리 준비 (브라우저 자동재생 허용)
+  tapPool = Array.from({ length: 8 }, () => { const a = new Audio(TAP_SOUND); a.preload = 'auto'; return a; });
+  endSound = new Audio(END_SOUND); endSound.preload = 'auto'; endSound.loop = true;
+}
+function tap(){                                          // 빠르게 쳐도 겹쳐 울리도록 8개를 돌려 씀
+  const a = tapPool[tapIdx++ % tapPool.length]; a.currentTime = 0; a.play().catch(() => {});
+}
+
+/* ═════════════ 불상 뒤 물방울 파동 (목탁이 울릴 때마다) ═════════════ */
+const wave = $('#wave'), wg = wave.getContext('2d');
+let waves = [], waveRAF = 0;
+
+function sizeWave(){
+  const d = devicePixelRatio || 1;
+  wave.width = innerWidth * d; wave.height = innerHeight * d; wg.setTransform(d, 0, 0, d, 0, 0);
+}
+function addWave(){
+  const r = $('#bud').getBoundingClientRect();
+  waves.push({ x: r.left + r.width * .5, y: r.top + r.height * .45, t0: performance.now(), max: r.height * .85 });
+  if (waves.length > 30) waves.shift();
+  if (!waveRAF) waveRAF = requestAnimationFrame(drawWaves);
+}
+function drawWaves(now){
+  wg.clearRect(0, 0, innerWidth, innerHeight);
+  const [cr, cg, cb] = rgbOf(PALETTE[colorSlider.value]);
+  waves = waves.filter(w => now - w.t0 < 1800);
+  for (const w of waves){
+    const p = (now - w.t0) / 1800, R = (1 - (1 - p) ** 2) * w.max, a = (1 - p) ** 1.5;
+    for (let i = 0; i < 3; i++){
+      const r = R - i * 10; if (r <= 0) continue;
+      wg.beginPath(); wg.arc(w.x, w.y, r, 0, 7);
+      wg.lineWidth = 2.6 - i * .7; wg.strokeStyle = `rgba(${cr},${cg},${cb},${a * (.55 - i * .15)})`; wg.stroke();
+    }
+  }
+  waveRAF = waves.length ? requestAnimationFrame(drawWaves) : 0;
+}
+addEventListener('resize', sizeWave);
+
+/* ═════════════ 처음 안내 (아무 곳이나 누르면 닫힘) ═════════════ */
+const intro = $('#intro');
+function showIntro(){
+  $('#typing').classList.add('intro');
+  $('#intro p').style.width = $('#bar').getBoundingClientRect().width + 'px';     // 글이 슬라이더 상자 오른쪽 끝에 맞춰짐
+  intro.style.display = 'block';
+}
+function hideIntro(){ intro.style.display = 'none'; $('#typing').classList.remove('intro'); }
+intro.addEventListener('click', hideIntro);
+
+/* ═════════════ 타자 진행 ═════════════ */
+let live = false, started = false, finished = false, composing = false;
+let startTime = 0, strokes = 0, clockTimer, finishTimer;
+
+$('#apply').onclick = () => {
+  initSounds(); sizeWave();
+  live = true;
+  $('#bar').style.display = 'none';
+  $('#pill').style.display = 'block';
+  $('#stats').style.display = 'flex';
+  textBox.style.paddingBottom = '45vh';                        // 마지막 줄도 화면 가운데까지 올라올 수 있게
+  scrollTo(0, 0); input.value = ''; input.focus(); paint();
+};
+document.addEventListener('click', () => { if (live && !finished) input.focus(); });
+
+input.addEventListener('compositionstart', () => { composing = true; });
+input.addEventListener('compositionend',   () => { composing = false; paint(); });
+input.addEventListener('input', paint);
+input.addEventListener('keydown', e => {
+  if (!live || finished) return;
+  if (!(e.key.length === 1 || e.key === 'Process')) return;     // 자모 키만 (한글 IME는 'Process')
+  if (!started){
+    started = true; startTime = Date.now();
+    $('#pill').style.display = 'none';
+    clockTimer = setInterval(tick, 100);
+  }
+  strokes++; tap(); addWave();                                  // 자모 하나마다 목탁 + 파동
+});
+
+function tick(){                                                // 시간 · 타수 갱신
+  const sec = (Date.now() - startTime) / 1000;
+  $('#clock').textContent = pad(Math.floor(sec / 3600)) + ':' + pad(Math.floor(sec / 60) % 60) + ':' + pad(Math.floor(sec % 60));
+  $('#cpm').textContent = '현재 타수: ' + Math.round(strokes / Math.max(sec, 1) * 60);
+}
+
+/* 치는 줄이 화면 40% 높이에 오도록 자동 스크롤 (직접 스크롤 불필요) */
+let scrollGoal = 0, scrollRAF = 0;
+function followCursor(el){
+  const maxY = document.documentElement.scrollHeight - innerHeight;
+  scrollGoal = Math.max(0, Math.min(maxY, el.getBoundingClientRect().top + scrollY - innerHeight * .4));
+  if (Math.abs(scrollGoal - scrollY) >= 2 && !scrollRAF) scrollRAF = requestAnimationFrame(stepScroll);
+}
+function stepScroll(){
+  const d = scrollGoal - scrollY;
+  if (Math.abs(d) < 2){ scrollTo(0, scrollGoal); scrollRAF = 0; return; }
+  scrollTo(0, scrollY + Math.sign(d) * Math.max(1, Math.abs(d) * .18));
+  scrollRAF = requestAnimationFrame(stepScroll);
+}
+
+function paint(){                                               // 원문(검정 고정) + 따라 쓰기 칸 갱신
+  const typed = [...input.value.replace(/\s/g, '')].slice(0, TOTAL);
+  const hex = PALETTE[colorSlider.value];
+  const done = lighten(hex, .65);                               // 맞게 친 글자 = 고른 색의 연한 톤
+  const now = composing ? typed.length - 1 : typed.length;      // 지금 치고 있는 글자 위치
+  document.querySelectorAll('#text .echo').forEach(b => b.classList.remove('has'));
+
+  targets.forEach((t, i) => {
+    const ch = typed[i], s = t.span, e = t.echo;
+    s.className = i === now ? 'cur' : '';
+    e.className = ''; e.style.color = ''; e.textContent = ch || '';
+    if (ch === undefined) return;
+    t.box.classList.add('has');
+
+    if (composing && i === typed.length - 1){                   // 치는 중인 글자: 자모 하나마다 색이 진해짐
+      const a = jamo(ch), b = jamo(t.ch);
+      const onTrack = a.length <= b.length && a.every((j, k) => j === b[k]);
+      if (onTrack) e.style.color = lighten(hex, .25 + .4 * a.length / b.length);   // ㅂ → ㅕ → ㄴ 로 .25 → .65
+      else e.className = 'bad';
+    } else if (ch === t.ch) e.style.color = done;
+    else e.className = 'bad';
+  });
+
+  const cur = targets[Math.min(now, TOTAL - 1)];
+  if (live && cur) followCursor(cur.span);
+
+  // 마지막 글자까지 치면 엔터 없이 자동 완료 (한글 조합 확정을 위해 잠깐 대기)
+  clearTimeout(finishTimer);
+  if (live && !finished && started && typed.length >= TOTAL) finishTimer = setTimeout(finish, composing ? 700 : 200);
+}
+
+/* ═════════════ 3. 완료 ═════════════ */
+function finish(){
+  finished = true; clearInterval(clockTimer); input.blur();
+  endSound.play().catch(() => {});                              // 다 쳤을 때 banya.mp3 재생
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  $('#finalTime').textContent = Math.floor(s / 3600) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
+  document.body.classList.remove('dim'); document.body.style.background = '#000';
+  showScreen('end');
+}
+$('#again').onclick = () => location.reload();
+</script>
+</body>
+</html>
